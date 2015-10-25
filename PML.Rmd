@@ -1,0 +1,50 @@
+---
+title: "Practical Machine Learning : Model building to classify activities in five classes"
+author: "Deepika Kulkarni"
+date: "October 16, 2015"
+output: html_document
+---
+
+**Introduction**
+
+Human Activity Recognition - HAR - has emerged as a key research area in the last years and is gaining increasing attention by the pervasive computing research communityespecially for the development of context-aware systems. There are many potential applications for HAR, like: elderly monitoring, life log systems for monitoring energy expenditure and for supporting weight-loss programs, and digital assistants for weight lifting exercises. In this particular experiment, six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions: exactly according to the specification (Class A), throwing the elbows to the front (Class B), lifting the dumbbell only halfway (Class C), lowering the dumbbell only halfway (Class D) and throwing the hips to the front (Class E).
+
+The aim of this analysis is to create a model that classifies any random activity in the above 5 classes. Here, we use "random forest" method to build the classification model.
+
+**Step 1: Getting an cleaning data**
+```{r}
+set.seed(12345)
+library(caret)
+library(randomForest)
+training <- read.csv("/Users/deepikakulkarni/Documents/RCourse/PML/pml-training.csv", na.string=c("NA","#DIV/0!"))
+testing <- read.csv("/Users/deepikakulkarni/Documents/RCourse/PML/pml-testing.csv", na.string=c("NA","#DIV/0!"))
+#Discard columns with NAs#
+NAIndex<-apply(training, 2, function(x){sum(is.na(x))})
+training<-training[, which(NAIndex==0)]
+testing<-testing[, which(NAIndex==0)]
+#Removing unnecessary columns such as "X", "user_name", "timestamp", "new_window"#
+removeIndex <- grep("X|user_name|timestamp|new_window", names(training))
+training<-training[,-removeIndex]
+testing<-testing[,-removeIndex]
+```
+
+**Step 2 : Susetting trainig data further for creating and cross validating model**
+
+Here, I have chosen to use random forest method to build a model as it gives the most accurate model among other methods.
+
+```{r}
+inTrain<- createDataPartition(y=training$classe, p=0.60, list=FALSE)
+training_test<-training[inTrain,]
+testing_test<-training[-inTrain,]
+modelfit <- randomForest(classe ~ ., data=training_test)
+confM<-confusionMatrix(testing_test$classe, predict(modelfit,testing_test))
+confM
+outOfSampleError <- 1-sum(diag(confM$table))/sum(confM$table)
+outOfSampleError
+```
+
+The procedure accuracy is 99%. This model predicts 99% of the time the correct "classe". The out of sample error is very low, 0.3% only.
+Hence, our model is good to go for prediction.
+
+
+
